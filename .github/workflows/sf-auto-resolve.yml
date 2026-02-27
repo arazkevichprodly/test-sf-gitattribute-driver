@@ -78,10 +78,26 @@ jobs:
             echo "Branch: $BRANCH"
             echo "Mergeable: $MERGEABLE"
 
-            # Skip PRs that aren't conflicting
-            if [ "$MERGEABLE" != "CONFLICTING" ]; then
-              echo "PR #$PR is not conflicting, skipping."
+            # Skip PRs that are already mergeable
+            if [ "$MERGEABLE" = "MERGEABLE" ]; then
+              echo "PR #$PR is already mergeable, skipping."
               continue
+            fi
+
+            # If UNKNOWN, wait for GitHub to compute mergeability
+            if [ "$MERGEABLE" = "UNKNOWN" ]; then
+              echo "Mergeable state is UNKNOWN, waiting for GitHub to compute..."
+              for i in 1 2 3 4 5; do
+                sleep 5
+                PR_DATA=$(gh pr view "$PR" --json headRefName,mergeable)
+                MERGEABLE=$(echo "$PR_DATA" | jq -r '.mergeable')
+                echo "  Attempt $i: $MERGEABLE"
+                if [ "$MERGEABLE" != "UNKNOWN" ]; then break; fi
+              done
+              if [ "$MERGEABLE" = "MERGEABLE" ]; then
+                echo "PR #$PR is already mergeable, skipping."
+                continue
+              fi
             fi
 
             echo "PR #$PR has conflicts. Attempting auto-resolve..."
