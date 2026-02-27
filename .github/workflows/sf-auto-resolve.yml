@@ -1,13 +1,13 @@
 name: Auto-resolve SF metadata conflicts
 
 on:
-  # Runs after a push to main (i.e. after a PR merge)
   push:
     branches: [main]
     paths:
       - 'force-app/**/*-meta.xml'
+      - 'package.xml'
+      - 'destructiveChanges*.xml'
 
-  # Manual trigger for a specific PR
   workflow_dispatch:
     inputs:
       pr_number:
@@ -29,19 +29,21 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Salesforce CLI and merge driver plugin
+        run: |
+          npm install -g @salesforce/cli
+          echo "y" | sf plugins install sf-git-merge-driver
+          sf git merge driver install
+
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Register the SF XML merge driver
-          git config merge.sf-xml.name "Salesforce XML merge driver"
-          git config merge.sf-xml.driver "scripts/sf-xml-merge.sh %O %A %B"
-          git config merge.sf-xml.recursive binary
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
 
       - name: Find and resolve conflicting PRs
         env:
@@ -49,11 +51,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Determine which PRs to process
           if [ -n "${{ inputs.pr_number || '' }}" ]; then
             PR_NUMBERS="${{ inputs.pr_number }}"
           else
-            # Get all open PRs
             PR_NUMBERS=$(gh pr list --state open --json number --jq '.[].number')
           fi
 
@@ -64,13 +64,13 @@ jobs:
 
           RESOLVED=0
           FAILED=0
+          SKIPPED=0
 
           for PR in $PR_NUMBERS; do
             echo "========================================="
             echo "Processing PR #$PR"
             echo "========================================="
 
-            # Get PR details
             PR_DATA=$(gh pr view "$PR" --json headRefName,mergeable,mergeStateStatus)
             BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
             MERGEABLE=$(echo "$PR_DATA" | jq -r '.mergeable')
@@ -78,62 +78,53 @@ jobs:
             echo "Branch: $BRANCH"
             echo "Mergeable: $MERGEABLE"
 
-            # Skip PRs that are already mergeable
-            if [ "$MERGEABLE" = "MERGEABLE" ]; then
-              echo "PR #$PR is already mergeable, skipping."
-              continue
-            fi
-
-            # If UNKNOWN, wait for GitHub to compute mergeability
+            # If UNKNOWN, wait for GitHub to compute
             if [ "$MERGEABLE" = "UNKNOWN" ]; then
-              echo "Mergeable state is UNKNOWN, waiting for GitHub to compute..."
-              for i in 1 2 3 4 5; do
+              echo "Waiting for GitHub to compute mergeability..."
+              for i in 1 2 3 4 5 6; do
                 sleep 5
                 PR_DATA=$(gh pr view "$PR" --json headRefName,mergeable)
                 MERGEABLE=$(echo "$PR_DATA" | jq -r '.mergeable')
                 echo "  Attempt $i: $MERGEABLE"
                 if [ "$MERGEABLE" != "UNKNOWN" ]; then break; fi
               done
-              if [ "$MERGEABLE" = "MERGEABLE" ]; then
-                echo "PR #$PR is already mergeable, skipping."
-                continue
-              fi
             fi
 
-            echo "PR #$PR has conflicts. Attempting auto-resolve..."
+            if [ "$MERGEABLE" = "MERGEABLE" ]; then
+              echo "PR #$PR is already mergeable, skipping."
+              SKIPPED=$((SKIPPED + 1))
+              continue
+            fi
 
-            # Fetch the PR branch
+            echo "PR #$PR has conflicts. Attempting auto-resolve with sf-git-merge-driver..."
+
             git fetch origin "$BRANCH" 2>/dev/null || {
               echo "Failed to fetch branch $BRANCH, skipping."
               FAILED=$((FAILED + 1))
               continue
             }
 
-            # Try the merge in a detached state first to test
             git checkout "origin/$BRANCH" 2>/dev/null
 
-            if git merge origin/main --no-edit 2>/dev/null; then
-              echo "Merge succeeded cleanly with SF XML driver!"
-
-              # Push the resolved merge back to the PR branch
-              git push origin HEAD:"$BRANCH" 2>/dev/null && {
-                echo "PR #$PR resolved and pushed successfully."
+            if git merge origin/main --no-edit; then
+              echo "Merge succeeded cleanly!"
+              git push origin HEAD:"$BRANCH" && {
+                echo "PR #$PR resolved and pushed."
                 RESOLVED=$((RESOLVED + 1))
               } || {
                 echo "Failed to push resolved branch for PR #$PR."
                 FAILED=$((FAILED + 1))
               }
             else
-              echo "PR #$PR has real content conflicts that can't be auto-resolved."
+              echo "PR #$PR has real semantic conflicts that need manual resolution."
               git merge --abort 2>/dev/null || true
               FAILED=$((FAILED + 1))
             fi
 
-            # Return to main for next iteration
             git checkout main 2>/dev/null
           done
 
           echo ""
           echo "========================================="
-          echo "Summary: $RESOLVED resolved, $FAILED could not be resolved"
+          echo "Summary: $RESOLVED resolved, $SKIPPED already clean, $FAILED need manual fix"
           echo "========================================="
