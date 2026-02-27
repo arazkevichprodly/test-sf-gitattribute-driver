@@ -1,0 +1,80 @@
+# =============================================================================
+# Salesforce Metadata - Custom XML Merge Driver
+# =============================================================================
+# Uses the "sf-xml" merge driver (defined in .gitconfig or .git/config) to
+# sort XML elements before merging, eliminating ordering-only conflicts.
+#
+# To activate, add to your .git/config or ~/.gitconfig:
+#
+#   [merge "sf-xml"]
+#       name = Salesforce XML merge driver
+#       driver = scripts/sf-xml-merge.sh %O %A %B
+#       recursive = binary
+# =============================================================================
+
+# --- Profiles (most conflict-prone metadata type) ---
+**/profiles/*.profile-meta.xml              merge=sf-xml
+
+# --- Permission Sets & Permission Set Groups ---
+**/permissionsets/*.permissionset-meta.xml   merge=sf-xml
+**/permissionsetgroups/*.permissionsetgroup-meta.xml merge=sf-xml
+
+# --- Custom Labels ---
+**/labels/CustomLabels.labels-meta.xml      merge=sf-xml
+
+# --- Custom Objects & Fields ---
+**/objects/**/*.object-meta.xml             merge=sf-xml
+**/objects/**/*.field-meta.xml              merge=sf-xml
+**/objects/**/*.validationRule-meta.xml      merge=sf-xml
+**/objects/**/*.listView-meta.xml           merge=sf-xml
+**/objects/**/*.recordType-meta.xml         merge=sf-xml
+**/objects/**/*.compactLayout-meta.xml      merge=sf-xml
+**/objects/**/*.webLink-meta.xml            merge=sf-xml
+**/objects/**/*.businessProcess-meta.xml    merge=sf-xml
+
+# --- Layouts ---
+**/layouts/*.layout-meta.xml                merge=sf-xml
+
+# --- Flows ---
+**/flows/*.flow-meta.xml                    merge=sf-xml
+
+# --- Translations ---
+**/translations/*.translation-meta.xml      merge=sf-xml
+**/objectTranslations/**/*.objectTranslation-meta.xml merge=sf-xml
+
+# --- Applications ---
+**/applications/*.app-meta.xml              merge=sf-xml
+
+# --- Tabs ---
+**/tabs/*.tab-meta.xml                      merge=sf-xml
+
+# --- Flexipages / Lightning Pages ---
+**/flexipages/*.flexipage-meta.xml          merge=sf-xml
+
+# --- Sharing Rules ---
+**/sharingRules/*.sharingRules-meta.xml     merge=sf-xml
+
+# --- Assignment & Escalation Rules ---
+**/assignmentRules/*.assignmentRules-meta.xml merge=sf-xml
+**/escalationRules/*.escalationRules-meta.xml merge=sf-xml
+**/autoResponseRules/*.autoResponseRules-meta.xml merge=sf-xml
+
+# --- Approval Processes ---
+**/approvalProcesses/*.approvalProcess-meta.xml merge=sf-xml
+
+# --- Workflows ---
+**/workflows/*.workflow-meta.xml            merge=sf-xml
+
+# --- Custom Metadata Types ---
+**/customMetadata/*.md-meta.xml             merge=sf-xml
+
+# --- Global Value Sets & Standard Value Sets ---
+**/globalValueSets/*.globalValueSet-meta.xml merge=sf-xml
+**/standardValueSets/*.standardValueSet-meta.xml merge=sf-xml
+
+# --- Matching & Duplicate Rules ---
+**/matchingRules/*.matchingRule-meta.xml     merge=sf-xml
+**/duplicateRules/*.duplicateRule-meta.xml   merge=sf-xml
+
+# --- Settings (catch-all for org settings) ---
+**/settings/*.settings-meta.xml             merge=sf-xml
