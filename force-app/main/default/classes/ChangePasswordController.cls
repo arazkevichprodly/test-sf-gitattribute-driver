@@ -1,5 +1,5 @@
 /**
- * An apex page controller that exposes the change password functionality
+ * An apex controller for updating user passwords - Beta
  */
 public with sharing class ChangePasswordController {
     public String oldPassword {get; set;}
