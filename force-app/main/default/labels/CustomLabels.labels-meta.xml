@@ -5,7 +5,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Application Title</shortDescription>
-        <value>My Application</value>
+        <value>My Beta Application</value>
     </labels>
     <labels>
         <fullName>WelcomeMessage</fullName>
