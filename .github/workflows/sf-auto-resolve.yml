@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'force-app/**/*-meta.xml'
+      - 'force-app/**'
       - 'package.xml'
       - 'destructiveChanges*.xml'
 
@@ -118,32 +118,45 @@ jobs:
               }
             else
               # Driver resolved what it could, but true conflicts remain.
-              # Force-accept the promotion branch's version (ours) for
-              # unresolved files — the bundle is the source of truth.
-              echo "True conflicts remain. Force-resolving with promotion branch version (ours)..."
+              # Force-accept bundle version ONLY for XML metadata files.
+              # Non-XML files (Apex, LWC, etc.) require manual resolution.
+              echo "True conflicts remain. Checking file types..."
 
               FORCE_RESOLVED_FILES=""
+              NON_XML_CONFLICTS=""
               for CONFLICTED_FILE in $(git diff --name-only --diff-filter=U); do
-                echo "  Force-resolving: $CONFLICTED_FILE (keeping promotion branch version)"
-                git checkout --ours "$CONFLICTED_FILE"
-                git add "$CONFLICTED_FILE"
-                FORCE_RESOLVED_FILES="$FORCE_RESOLVED_FILES\n  - $CONFLICTED_FILE"
+                if echo "$CONFLICTED_FILE" | grep -qE '\.(xml|labels-meta\.xml)$'; then
+                  echo "  Force-resolving (XML): $CONFLICTED_FILE"
+                  git checkout --ours "$CONFLICTED_FILE"
+                  git add "$CONFLICTED_FILE"
+                  FORCE_RESOLVED_FILES="$FORCE_RESOLVED_FILES\n  - $CONFLICTED_FILE"
+                else
+                  echo "  Non-XML conflict (manual): $CONFLICTED_FILE"
+                  NON_XML_CONFLICTS="$NON_XML_CONFLICTS\n  - $CONFLICTED_FILE"
+                fi
               done
 
-              COMMIT_MSG="Auto-resolve: merge main into $BRANCH"
-              COMMIT_MSG="$COMMIT_MSG\n\nsf-git-merge-driver resolved false XML conflicts automatically."
-              COMMIT_MSG="$COMMIT_MSG\nRemaining true conflicts force-resolved with promotion branch version (ours):"
-              COMMIT_MSG="$COMMIT_MSG$FORCE_RESOLVED_FILES"
-              git commit -m "$(echo -e "$COMMIT_MSG")"
-
-              git push origin HEAD:"$BRANCH" && {
-                echo "PR #$PR resolved (with force-overwrite) and pushed."
-                FORCE_RESOLVED=$((FORCE_RESOLVED + 1))
-              } || {
-                echo "Failed to push resolved branch for PR #$PR."
+              if [ -n "$NON_XML_CONFLICTS" ]; then
+                echo "PR #$PR has non-XML conflicts that need manual resolution:"
+                echo -e "$NON_XML_CONFLICTS"
                 git merge --abort 2>/dev/null || true
                 FAILED=$((FAILED + 1))
-              }
+              else
+                COMMIT_MSG="Auto-resolve: merge main into $BRANCH"
+                COMMIT_MSG="$COMMIT_MSG\n\nsf-git-merge-driver resolved false XML conflicts automatically."
+                COMMIT_MSG="$COMMIT_MSG\nRemaining XML conflicts force-resolved with promotion branch version (ours):"
+                COMMIT_MSG="$COMMIT_MSG$FORCE_RESOLVED_FILES"
+                git commit -m "$(echo -e "$COMMIT_MSG")"
+
+                git push origin HEAD:"$BRANCH" && {
+                  echo "PR #$PR resolved (with force-overwrite) and pushed."
+                  FORCE_RESOLVED=$((FORCE_RESOLVED + 1))
+                } || {
+                  echo "Failed to push resolved branch for PR #$PR."
+                  git merge --abort 2>/dev/null || true
+                  FAILED=$((FAILED + 1))
+                }
+              fi
             fi
 
             git checkout main 2>/dev/null
