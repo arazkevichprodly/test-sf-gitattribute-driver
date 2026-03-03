@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'force-app/**/*-meta.xml'
+      - 'force-app/**'
       - 'package.xml'
       - 'destructiveChanges*.xml'
 
