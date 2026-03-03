@@ -16,4 +16,9 @@ public with sharing class AccountService {
         Account acc = new Account(Id = accountId, Rating = rating);
         update acc;
     }
+
+    public static void deleteAccount(Id accountId) {
+        Account acc = [SELECT Id FROM Account WHERE Id = :accountId LIMIT 1];
+        delete acc;
+    }
 }
