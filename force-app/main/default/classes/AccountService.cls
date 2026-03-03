@@ -1,7 +1,7 @@
 public with sharing class AccountService {
 
     public static Account getAccountById(Id accountId) {
-        return [SELECT Id, Name, Industry, Type FROM Account WHERE Id = :accountId LIMIT 1];
+        return [SELECT Id, Name, Industry, Type, Rating FROM Account WHERE Id = :accountId LIMIT 1];
     }
 
     public static List<Account> getAccountsByIndustry(String industry) {
