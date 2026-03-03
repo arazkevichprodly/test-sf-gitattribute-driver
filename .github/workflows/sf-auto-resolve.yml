@@ -63,6 +63,7 @@ jobs:
           fi
 
           RESOLVED=0
+          FORCE_RESOLVED=0
           FAILED=0
           SKIPPED=0
 
@@ -107,7 +108,7 @@ jobs:
             git checkout "origin/$BRANCH" 2>/dev/null
 
             if git merge origin/main --no-edit; then
-              echo "Merge succeeded cleanly!"
+              echo "Merge succeeded cleanly (driver resolved all conflicts)."
               git push origin HEAD:"$BRANCH" && {
                 echo "PR #$PR resolved and pushed."
                 RESOLVED=$((RESOLVED + 1))
@@ -116,9 +117,33 @@ jobs:
                 FAILED=$((FAILED + 1))
               }
             else
-              echo "PR #$PR has real semantic conflicts that need manual resolution."
-              git merge --abort 2>/dev/null || true
-              FAILED=$((FAILED + 1))
+              # Driver resolved what it could, but true conflicts remain.
+              # Force-accept the promotion branch's version (ours) for
+              # unresolved files — the bundle is the source of truth.
+              echo "True conflicts remain. Force-resolving with promotion branch version (ours)..."
+
+              FORCE_RESOLVED_FILES=""
+              for CONFLICTED_FILE in $(git diff --name-only --diff-filter=U); do
+                echo "  Force-resolving: $CONFLICTED_FILE (keeping promotion branch version)"
+                git checkout --ours "$CONFLICTED_FILE"
+                git add "$CONFLICTED_FILE"
+                FORCE_RESOLVED_FILES="$FORCE_RESOLVED_FILES\n  - $CONFLICTED_FILE"
+              done
+
+              git commit -m "Auto-resolve: merge main into $BRANCH
+
+sf-git-merge-driver resolved false XML conflicts automatically.
+Remaining true conflicts force-resolved with promotion branch version (ours):
+$(echo -e "$FORCE_RESOLVED_FILES")"
+
+              git push origin HEAD:"$BRANCH" && {
+                echo "PR #$PR resolved (with force-overwrite) and pushed."
+                FORCE_RESOLVED=$((FORCE_RESOLVED + 1))
+              } || {
+                echo "Failed to push resolved branch for PR #$PR."
+                git merge --abort 2>/dev/null || true
+                FAILED=$((FAILED + 1))
+              }
             fi
 
             git checkout main 2>/dev/null
@@ -126,5 +151,9 @@ jobs:
 
           echo ""
           echo "========================================="
-          echo "Summary: $RESOLVED resolved, $SKIPPED already clean, $FAILED need manual fix"
+          echo "Summary:"
+          echo "  $RESOLVED cleanly resolved (driver only)"
+          echo "  $FORCE_RESOLVED force-resolved (bundle version wins)"
+          echo "  $SKIPPED already clean"
+          echo "  $FAILED failed"
           echo "========================================="
