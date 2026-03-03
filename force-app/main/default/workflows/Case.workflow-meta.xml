@@ -3,7 +3,7 @@
     <fieldUpdates>
         <fullName>ChangePriorityToHigh</fullName>
         <field>Priority</field>
-        <literalValue>High</literalValue>
+        <literalValue>Critical</literalValue>
         <name>Changes the case priority to high.</name>
         <notifyAssignee>false</notifyAssignee>
         <operation>Literal</operation>
