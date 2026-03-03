@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>AppTitle</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Application Title</shortDescription>
+        <value>My Application</value>
+    </labels>
+    <labels>
+        <fullName>WelcomeMessage</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Welcome Message</shortDescription>
+        <value>Welcome to our platform</value>
+    </labels>
+    <labels>
+        <fullName>ErrorGeneric</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Generic Error</shortDescription>
+        <value>An error has occurred</value>
+    </labels>
+</CustomLabels>
