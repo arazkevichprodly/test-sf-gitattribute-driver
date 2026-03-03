@@ -13,7 +13,9 @@ public with sharing class AccountService {
     }
 
     public static void updateAccountRating(Id accountId, String rating) {
-        Account acc = new Account(Id = accountId, Rating = rating);
+        Account acc = [SELECT Id, Rating FROM Account WHERE Id = :accountId LIMIT 1];
+        acc.Rating = rating;
+        acc.LastModifiedDate__c = System.now();
         update acc;
     }
 
