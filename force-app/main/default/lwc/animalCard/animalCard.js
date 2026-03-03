@@ -2,7 +2,7 @@ import { LightningElement, api, wire } from 'lwc';
 import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import { NavigationMixin } from 'lightning/navigation';
 
-import NAME_FIELD from '@salesforce/schema/Animal__c.Name';
+import NAME_FIELD from '@salesforce/schema/Animal__c.Beta_Name__c';
 import SPECIES_FIELD from '@salesforce/schema/Animal__c.Species__c';
 import AGE_FIELD from '@salesforce/schema/Animal__c.Age__c';
 import HEALTH_STATUS_FIELD from '@salesforce/schema/Animal__c.Health_Status__c';
