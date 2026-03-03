@@ -1,15 +1,26 @@
 public with sharing class AccountService {
 
     public static Account getAccountById(Id accountId) {
-        return [SELECT Id, Name, Industry, Type FROM Account WHERE Id = :accountId LIMIT 1];
+        return [SELECT Id, Name, Industry, Type, Rating FROM Account WHERE Id = :accountId LIMIT 1];
     }
 
     public static List<Account> getAccountsByIndustry(String industry) {
         return [SELECT Id, Name, Industry FROM Account WHERE Industry = :industry];
     }
 
+    public static Account getAccountByName(String name) {
+        return [SELECT Id, Name, Industry FROM Account WHERE Name = :name LIMIT 1];
+    }
+
     public static void updateAccountRating(Id accountId, String rating) {
-        Account acc = new Account(Id = accountId, Rating = rating);
+        Account acc = [SELECT Id, Rating FROM Account WHERE Id = :accountId LIMIT 1];
+        acc.Rating = rating;
+        acc.LastModifiedDate__c = System.now();
         update acc;
+    }
+
+    public static void deleteAccount(Id accountId) {
+        Account acc = [SELECT Id FROM Account WHERE Id = :accountId LIMIT 1];
+        delete acc;
     }
 }
