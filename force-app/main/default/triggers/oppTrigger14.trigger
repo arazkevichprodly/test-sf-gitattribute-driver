@@ -1,1 +1,1 @@
-trigger oppTrigger14 on Opportunity (after insert){}
+trigger oppTrigger14 on Opportunity (after insert){ System.debug('Beta trigger v2'); }
