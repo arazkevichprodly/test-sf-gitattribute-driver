@@ -62,6 +62,31 @@ jobs:
             exit 0
           fi
 
+          # Build list of supported file patterns from .gitattributes
+          SUPPORTED_PATTERNS=()
+          while IFS= read -r line; do
+            # Extract the glob pattern (first field) from lines with merge=salesforce-source
+            pattern=$(echo "$line" | grep 'merge=salesforce-source' | awk '{print $1}')
+            [ -n "$pattern" ] && SUPPORTED_PATTERNS+=("$pattern")
+          done < .gitattributes
+          echo "Supported merge driver patterns (${#SUPPORTED_PATTERNS[@]}):"
+          printf '  %s\n' "${SUPPORTED_PATTERNS[@]}"
+
+          # Function: check if a file matches any supported pattern
+          is_supported_type() {
+            local file="$1"
+            local basename
+            basename=$(basename "$file")
+            for pattern in "${SUPPORTED_PATTERNS[@]}"; do
+              # Use bash pattern matching (fnmatch-style)
+              # shellcheck disable=SC2254
+              case "$basename" in
+                $pattern) return 0 ;;
+              esac
+            done
+            return 1
+          }
+
           RESOLVED=0
           FORCE_RESOLVED=0
           FAILED=0
@@ -118,34 +143,35 @@ jobs:
               }
             else
               # Driver resolved what it could, but true conflicts remain.
-              # Force-accept bundle version ONLY for XML metadata files.
-              # Non-XML files (Apex, LWC, etc.) require manual resolution.
+              # Force-accept bundle version ONLY for supported metadata types
+              # (those registered in .gitattributes with merge=salesforce-source).
+              # Unsupported types require manual resolution.
               echo "True conflicts remain. Checking file types..."
 
               FORCE_RESOLVED_FILES=""
-              NON_XML_CONFLICTS=""
+              UNSUPPORTED_CONFLICTS=""
               while IFS= read -r CONFLICTED_FILE; do
                 [ -z "$CONFLICTED_FILE" ] && continue
-                if echo "$CONFLICTED_FILE" | grep -qE '\.(xml|labels-meta\.xml)$'; then
-                  echo "  Force-resolving (XML): $CONFLICTED_FILE"
+                if is_supported_type "$CONFLICTED_FILE"; then
+                  echo "  Force-resolving (supported): $CONFLICTED_FILE"
                   git checkout --ours -- "$CONFLICTED_FILE"
                   git add -- "$CONFLICTED_FILE"
                   FORCE_RESOLVED_FILES="$FORCE_RESOLVED_FILES\n  - $CONFLICTED_FILE"
                 else
-                  echo "  Non-XML conflict (manual): $CONFLICTED_FILE"
-                  NON_XML_CONFLICTS="$NON_XML_CONFLICTS\n  - $CONFLICTED_FILE"
+                  echo "  Unsupported type (manual): $CONFLICTED_FILE"
+                  UNSUPPORTED_CONFLICTS="$UNSUPPORTED_CONFLICTS\n  - $CONFLICTED_FILE"
                 fi
               done < <(git diff --name-only --diff-filter=U)
 
-              if [ -n "$NON_XML_CONFLICTS" ]; then
-                echo "PR #$PR has non-XML conflicts that need manual resolution:"
-                echo -e "$NON_XML_CONFLICTS"
+              if [ -n "$UNSUPPORTED_CONFLICTS" ]; then
+                echo "PR #$PR has unsupported type conflicts that need manual resolution:"
+                echo -e "$UNSUPPORTED_CONFLICTS"
                 git merge --abort 2>/dev/null || true
                 FAILED=$((FAILED + 1))
               else
                 COMMIT_MSG="Auto-resolve: merge main into $BRANCH"
-                COMMIT_MSG="$COMMIT_MSG\n\nsf-git-merge-driver resolved false XML conflicts automatically."
-                COMMIT_MSG="$COMMIT_MSG\nRemaining XML conflicts force-resolved with promotion branch version (ours):"
+                COMMIT_MSG="$COMMIT_MSG\n\nsf-git-merge-driver resolved false conflicts automatically."
+                COMMIT_MSG="$COMMIT_MSG\nRemaining supported-type conflicts force-resolved with promotion branch version (ours):"
                 COMMIT_MSG="$COMMIT_MSG$FORCE_RESOLVED_FILES"
                 git commit -m "$(echo -e "$COMMIT_MSG")"
 
