@@ -9,7 +9,7 @@
     <standardValue>
         <fullName>Banking</fullName>
         <default>false</default>
-        <label>Financial Services</label>
+        <label>Beta Banking</label>
     </standardValue>
     <standardValue>
         <fullName>Construction</fullName>
