@@ -8,8 +8,8 @@ public with sharing class AccountService {
         return [SELECT Id, Name, Industry FROM Account WHERE Industry = :industry];
     }
 
-    public static void updateAccountRating(Id accountId, String rating) {
-        Account acc = new Account(Id = accountId, Rating = rating);
+    public static void updateAccountRating(Id accountId) {
+        Account acc = new Account(Id = accountId, Rating = 'Hot');
         update acc;
     }
 }
