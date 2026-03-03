@@ -1,0 +1,49 @@
+<template>
+    <div class="animal-card">
+        <lightning-card title={name} icon-name="custom:custom83">
+            <div slot="actions">
+                <lightning-button-group>
+                    <lightning-button label="View" icon-name="utility:preview" onclick={handleViewDetails}></lightning-button>
+                    <lightning-button label="Edit" icon-name="utility:edit" onclick={handleEdit}></lightning-button>
+                </lightning-button-group>
+            </div>
+            
+            <div class="slds-p-horizontal_small">
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col slds-size_1-of-2">
+                        <dl class="slds-dl_horizontal">
+                            <dt class="slds-dl_horizontal__label slds-truncate">Species:</dt>
+                            <dd class="slds-dl_horizontal__detail">{species}</dd>
+                            
+                            <dt class="slds-dl_horizontal__label slds-truncate">Age:</dt>
+                            <dd class="slds-dl_horizontal__detail">{age}</dd>
+                            
+                            <dt class="slds-dl_horizontal__label slds-truncate">Diet:</dt>
+                            <dd class="slds-dl_horizontal__detail">{diet}</dd>
+                        </dl>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <dl class="slds-dl_horizontal">
+                            <dt class="slds-dl_horizontal__label slds-truncate">Health Status:</dt>
+                            <dd class="slds-dl_horizontal__detail">
+                                <span class={healthStatusClass}>{healthStatus}</span>
+                            </dd>
+                        </dl>
+                        
+                        <template if:true={description}>
+                            <div class="slds-m-top_small">
+                                <div class="slds-text-title">Description:</div>
+                                <div class="slds-text-body_regular slds-m-top_xx-small">{description}</div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            
+            <div slot="footer">
+                <lightning-badge label={species}></lightning-badge>
+                <lightning-badge label={healthStatus} class={healthStatusClass}></lightning-badge>
+            </div>
+        </lightning-card>
+    </div>
+</template>

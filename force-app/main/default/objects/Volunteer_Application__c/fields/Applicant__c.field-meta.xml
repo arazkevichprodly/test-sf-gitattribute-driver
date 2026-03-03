@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Applicant__c</fullName>
+    <description>The person applying to be a volunteer</description>
+    <externalId>false</externalId>
+    <label>Applicant</label>
+    <referenceTo>Contact</referenceTo>
+    <relationshipLabel>Volunteer Applications</relationshipLabel>
+    <relationshipName>Volunteer_Applications</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

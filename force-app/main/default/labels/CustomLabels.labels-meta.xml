@@ -21,4 +21,32 @@
         <shortDescription>Generic Error</shortDescription>
         <value>An error has occurred</value>
     </labels>
+    <labels>
+        <fullName>asdf</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>asdf</shortDescription>
+        <value>asdf</value>
+    </labels>
+    <labels>
+        <fullName>hello</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>hello</shortDescription>
+        <value>hello22123sdf</value>
+    </labels>
+    <labels>
+        <fullName>test</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>test</shortDescription>
+        <value>test</value>
+    </labels>
+    <labels>
+        <fullName>test1</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>test1</shortDescription>
+        <value>test1</value>
+    </labels>
 </CustomLabels>

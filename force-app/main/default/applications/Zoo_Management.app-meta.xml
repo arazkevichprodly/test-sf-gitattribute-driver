@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <brand>
+        <headerColor>#0070D2</headerColor>
+        <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
+    </brand>
+    <formFactors>Small</formFactors>
+    <formFactors>Large</formFactors>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+    <isNavTabPersistenceDisabled>false</isNavTabPersistenceDisabled>
+    <label>Zoo Management</label>
+    <navType>Standard</navType>
+    <tabs>Zoo_Management_App</tabs>
+    <tabs>Zoo_Dashboard</tabs>
+    <tabs>Zoo_Fallback_Dashboard</tabs>
+    <tabs>Animal__c</tabs>
+    <tabs>Caregiver__c</tabs>
+    <tabs>Enclosure__c</tabs>
+    <tabs>Care_Assignment__c</tabs>
+    <tabs>standard-report</tabs>
+    <tabs>Moover_Bug__c</tabs>
+    <tabs>SelfRefObject__c</tabs>
+    <tabs>PDRI__Managed_Environment__c</tabs>
+    <uiType>Lightning</uiType>
+    <utilityBar>Zoo_Management_UtilityBar</utilityBar>
+</CustomApplication>

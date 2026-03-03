@@ -1,0 +1,90 @@
+<template>
+    <div class="caregiver-profile">
+        <lightning-card>
+            <div slot="title">
+                <div class="slds-media slds-media_center">
+                    <div class="slds-media__figure">
+                        <lightning-avatar size="medium" src="" initials={initials} fallback-icon-name="standard:user"></lightning-avatar>
+                    </div>
+                    <div class="slds-media__body">
+                        <h2 class="slds-card__header-title">{name}</h2>
+                        <p class="slds-text-body_small">{employeeId}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div slot="actions">
+                <lightning-button-group>
+                    <lightning-button label="Edit" icon-name="utility:edit" onclick={handleEdit}></lightning-button>
+                    <lightning-button label="New Assignment" icon-name="utility:add" onclick={handleNewAssignment}></lightning-button>
+                </lightning-button-group>
+            </div>
+            
+            <div class="slds-p-horizontal_small">
+                <div class="slds-grid slds-gutters slds-wrap">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-box slds-box_x-small slds-m-bottom_medium">
+                            <div class="slds-media">
+                                <div class="slds-media__figure">
+                                    <lightning-icon icon-name={specializationIcon} size="small"></lightning-icon>
+                                </div>
+                                <div class="slds-media__body">
+                                    <p class="slds-text-title">Specialization</p>
+                                    <p class="slds-text-body_regular">{specialization}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-box slds-box_x-small slds-m-bottom_medium">
+                            <div class="slds-media">
+                                <div class="slds-media__figure">
+                                    <lightning-icon icon-name="utility:date_time" size="small"></lightning-icon>
+                                </div>
+                                <div class="slds-media__body">
+                                    <p class="slds-text-title">Hire Date</p>
+                                    <p class="slds-text-body_regular">
+                                        <lightning-formatted-date-time value={hireDate}></lightning-formatted-date-time>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-box slds-box_x-small slds-m-bottom_medium">
+                            <div class="slds-media">
+                                <div class="slds-media__figure">
+                                    <lightning-icon icon-name="utility:call" size="small"></lightning-icon>
+                                </div>
+                                <div class="slds-media__body">
+                                    <p class="slds-text-title">Contact Number</p>
+                                    <p class="slds-text-body_regular">
+                                        <lightning-formatted-phone value={contactNumber}></lightning-formatted-phone>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-box slds-box_x-small slds-m-bottom_medium">
+                            <div class="slds-media">
+                                <div class="slds-media__figure">
+                                    <lightning-icon icon-name="utility:email" size="small"></lightning-icon>
+                                </div>
+                                <div class="slds-media__body">
+                                    <p class="slds-text-title">Email</p>
+                                    <p class="slds-text-body_regular">
+                                        <lightning-formatted-email value={email}></lightning-formatted-email>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </lightning-card>
+    </div>
+</template>

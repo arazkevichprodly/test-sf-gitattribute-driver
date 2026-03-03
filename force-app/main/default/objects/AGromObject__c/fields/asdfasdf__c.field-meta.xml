@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>asdfasdf__c</fullName>
+    <description>alksdjflksdf</description>
+    <externalId>false</externalId>
+    <inlineHelpText>hello</inlineHelpText>
+    <label>asdfasdf</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Date</type>
+</CustomField>

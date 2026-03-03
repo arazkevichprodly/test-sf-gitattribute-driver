@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Specialization__c</fullName>
+    <externalId>false</externalId>
+    <label>Specialization</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Large Mammals</fullName>
+                <default>false</default>
+                <label>Large Mammals</label>
+            </value>
+            <value>
+                <fullName>Small Mammals</fullName>
+                <default>false</default>
+                <label>Small Mammals</label>
+            </value>
+            <value>
+                <fullName>Birds</fullName>
+                <default>false</default>
+                <label>Birds</label>
+            </value>
+            <value>
+                <fullName>Reptiles</fullName>
+                <default>false</default>
+                <label>Reptiles</label>
+            </value>
+            <value>
+                <fullName>Aquatic Animals</fullName>
+                <default>false</default>
+                <label>Aquatic Animals</label>
+            </value>
+            <value>
+                <fullName>Primates</fullName>
+                <default>false</default>
+                <label>Primates</label>
+            </value>
+            <value>
+                <fullName>General</fullName>
+                <default>true</default>
+                <label>General</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

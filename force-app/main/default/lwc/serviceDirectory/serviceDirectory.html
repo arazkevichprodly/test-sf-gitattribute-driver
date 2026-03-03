@@ -1,0 +1,72 @@
+<template>
+    <lightning-card title="Volunteer Service Directory" icon-name="custom:custom15">
+        <div class="slds-p-horizontal_small">
+            <div class="slds-grid slds-gutters slds-p-bottom_medium">
+                <div class="slds-col slds-size_2-of-3">
+                    <lightning-input type="search" 
+                                    label="Search Services" 
+                                    onchange={handleSearchChange}
+                                    value={searchTerm}>
+                    </lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-3">
+                    <lightning-combobox label="Filter by Category"
+                                        value={selectedCategory}
+                                        options={categoryOptions}
+                                        onchange={handleCategoryChange}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <template if:true={isLoading}>
+                <div class="slds-is-relative slds-p-around_medium">
+                    <lightning-spinner alternative-text="Loading services" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasServices}>
+                    <div class="slds-grid slds-wrap slds-gutters">
+                        <template for:each={filteredServices} for:item="service">
+                            <div key={service.id} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-p-bottom_medium">
+                                <lightning-card title={service.name}>
+                                    <div class="slds-p-horizontal_small">
+                                        <p class="slds-p-bottom_small">{service.description}</p>
+                                        <div class="slds-grid slds-grid_vertical-align-center slds-p-bottom_x-small">
+                                            <lightning-icon icon-name="utility:location" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                            <span>{service.location}</span>
+                                        </div>
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <lightning-icon icon-name="utility:knowledge_base" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                            <span>{service.skillName} ({service.skillCategory})</span>
+                                        </div>
+                                    </div>
+                                    <div slot="footer">
+                                        <lightning-button label="View Details" 
+                                                        data-id={service.id}
+                                                        onclick={handleViewService}
+                                                        class="slds-m-right_x-small">
+                                        </lightning-button>
+                                        <lightning-button label="Request Service" 
+                                                        variant="brand" 
+                                                        data-skillid={service.skillId}
+                                                        onclick={handleRequestService}>
+                                        </lightning-button>
+                                    </div>
+                                </lightning-card>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template if:false={hasServices}>
+                    <div class="slds-illustration slds-illustration_small">
+                        <div class="slds-text-longform">
+                            <h3 class="slds-text-heading_medium">No services found</h3>
+                            <p class="slds-text-body_regular">Try adjusting your search or filter criteria</p>
+                        </div>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

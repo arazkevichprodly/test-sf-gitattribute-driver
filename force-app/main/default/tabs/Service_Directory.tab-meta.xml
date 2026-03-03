@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Directory of available volunteer services</description>
+    <flexiPage>Service_Directory</flexiPage>
+    <label>Service Directory</label>
+    <motif>Custom15: People</motif>
+</CustomTab>

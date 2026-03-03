@@ -1,0 +1,43 @@
+<template>
+    <lightning-card title="Volunteer Registration" icon-name="custom:custom27">
+        <div class="slds-p-horizontal_small">
+            <div class="slds-text-body_regular slds-p-bottom_medium">
+                Thank you for your interest in volunteering! Please complete the form below to register as a volunteer.
+            </div>
+            
+            <lightning-record-edit-form object-api-name="Volunteer_Application__c">
+                <div class="slds-grid slds-wrap">
+                    <div class="slds-col slds-size_1-of-1 slds-p-bottom_small">
+                        <lightning-input-field field-name="Skills__c" 
+                                              value={application.Skills__c}
+                                              onchange={handleInputChange}
+                                              required>
+                        </lightning-input-field>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-p-bottom_small">
+                        <lightning-input-field field-name="Experience__c" 
+                                              value={application.Experience__c}
+                                              onchange={handleInputChange}
+                                              required>
+                        </lightning-input-field>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-p-bottom_small">
+                        <lightning-dual-listbox name="Availability__c"
+                                               label="Availability"
+                                               source-label="Available Options"
+                                               selected-label="Selected Options"
+                                               options={availabilityOptions}
+                                               value={application.Availability__c}
+                                               onchange={handleAvailabilityChange}
+                                               required>
+                        </lightning-dual-listbox>
+                    </div>
+                </div>
+            </lightning-record-edit-form>
+        </div>
+        <div slot="footer">
+            <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-right_x-small"></lightning-button>
+            <lightning-button label="Submit Application" variant="brand" onclick={handleSubmit}></lightning-button>
+        </div>
+    </lightning-card>
+</template>

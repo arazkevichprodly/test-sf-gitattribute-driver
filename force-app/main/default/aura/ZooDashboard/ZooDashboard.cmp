@@ -1,0 +1,107 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes" controller="ZooDashboardController">
+    <aura:attribute name="animalCount" type="Integer" default="0" />
+    <aura:attribute name="caregiverCount" type="Integer" default="0" />
+    <aura:attribute name="enclosureCount" type="Integer" default="0" />
+    <aura:attribute name="assignmentCount" type="Integer" default="0" />
+
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+
+    <div class="slds-grid slds-gutters slds-wrap">
+        <div class="slds-col slds-size_1-of-1">
+            <div class="slds-text-heading_large slds-align_absolute-center slds-p-around_medium">
+                Zoo Management Dashboard
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4 slds-p-around_small">
+            <lightning:card title="Animals" iconName="custom:custom83">
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_large slds-align_absolute-center">
+                        {!v.animalCount}
+                    </div>
+                    <div class="slds-align_absolute-center slds-p-top_small">
+                        <lightning:button label="View Animals" onclick="{!c.navigateToAnimals}" variant="brand" />
+                    </div>
+                </div>
+            </lightning:card>
+        </div>
+
+        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4 slds-p-around_small">
+            <lightning:card title="Caregivers" iconName="custom:custom15">
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_large slds-align_absolute-center">
+                        {!v.caregiverCount}
+                    </div>
+                    <div class="slds-align_absolute-center slds-p-top_small">
+                        <lightning:button label="View Caregivers" onclick="{!c.navigateToCaregivers}" variant="brand" />
+                    </div>
+                </div>
+            </lightning:card>
+        </div>
+
+        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4 slds-p-around_small">
+            <lightning:card title="Enclosures" iconName="custom:custom40">
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_large slds-align_absolute-center">
+                        {!v.enclosureCount}
+                    </div>
+                    <div class="slds-align_absolute-center slds-p-top_small">
+                        <lightning:button label="View Enclosures" onclick="{!c.navigateToEnclosures}" variant="brand" />
+                    </div>
+                </div>
+            </lightning:card>
+        </div>
+
+        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4 slds-p-around_small">
+            <lightning:card title="Care Assignments" iconName="custom:custom26">
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_large slds-align_absolute-center">
+                        {!v.assignmentCount}
+                    </div>
+                    <div class="slds-align_absolute-center slds-p-top_small">
+                        <lightning:button label="View Assignments" onclick="{!c.navigateToAssignments}" variant="brand" />
+                    </div>
+                </div>
+            </lightning:card>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="slds-col slds-size_1-of-1 slds-p-around_small">
+            <lightning:card title="Quick Actions" iconName="utility:add">
+                <div class="slds-p-around_medium">
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col slds-size_1-of-4">
+                            <lightning:button label="New Animal" onclick="{!c.createNewAnimal}" variant="neutral" class="slds-button_stretch" />
+                        </div>
+                        <div class="slds-col slds-size_1-of-4">
+                            <lightning:button label="New Caregiver" onclick="{!c.createNewCaregiver}" variant="neutral" class="slds-button_stretch" />
+                        </div>
+                        <div class="slds-col slds-size_1-of-4">
+                            <lightning:button label="New Enclosure" onclick="{!c.createNewEnclosure}" variant="neutral" class="slds-button_stretch" />
+                        </div>
+                        <div class="slds-col slds-size_1-of-4">
+                            <lightning:button label="New Assignment" onclick="{!c.createNewAssignment}" variant="neutral" class="slds-button_stretch" />
+                        </div>
+                    </div>
+                </div>
+            </lightning:card>
+        </div>
+
+        <!-- Welcome Message -->
+        <div class="slds-col slds-size_1-of-1 slds-p-around_small">
+            <lightning:card title="Welcome to Zoo Management" iconName="custom:custom78">
+                <div class="slds-p-around_medium">
+                    <p>This dashboard provides access to the Zoo Management application. Use the buttons above to navigate to different sections of the app or create new records.</p>
+                    <p class="slds-p-top_small">To get started:</p>
+                    <ol class="slds-list_ordered slds-p-left_medium slds-p-top_x-small">
+                        <li>Create enclosures for your animals</li>
+                        <li>Add caregivers who will be responsible for the animals</li>
+                        <li>Add animals to your zoo</li>
+                        <li>Create care assignments to connect animals with caregivers and enclosures</li>
+                    </ol>
+                </div>
+            </lightning:card>
+        </div>
+    </div>
+</aura:component>

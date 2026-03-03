@@ -1,0 +1,8 @@
+<apex:page controller="MySimpleRest">
+    <apex:form >
+
+     <apex:outputlabel >Enter Name</apex:outputlabel>
+
+     <apex:commandButton value="click" rerender="one" action="{!doGet}"/>
+ </apex:form>
+</apex:page>

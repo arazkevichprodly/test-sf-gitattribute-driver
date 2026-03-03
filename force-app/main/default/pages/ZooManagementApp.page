@@ -1,0 +1,266 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" docType="html-5.0" controller="ZooManagementAppController">
+    <apex:slds />
+    
+    <!-- Include external libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <style>
+        html, body, .outerContainer {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        .iframe-container {
+            width: 100%;
+            height: 100%;
+            border: none;
+            overflow: hidden;
+        }
+        .debug-info {
+            padding: 20px;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            margin: 20px;
+            border-radius: 5px;
+        }
+        .error-message {
+            color: #c23934;
+            font-weight: bold;
+        }
+        .success-message {
+            color: #04844b;
+            font-weight: bold;
+        }
+    </style>
+
+    <div class="outerContainer">
+        <!-- Direct content loading instead of iframe -->
+        <apex:outputPanel id="directContent" rendered="true">
+            <div id="zoo-app-container">
+                <!-- The app will be loaded here by JavaScript -->
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_large slds-m-bottom_medium">Zoo Management App</div>
+                    <p>Loading application...</p>
+                    <div class="slds-progress-bar slds-progress-bar_large" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" role="progressbar">
+                        <span class="slds-progress-bar__value" style="width: 50%">
+                            <span class="slds-assistive-text">50% Complete</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Debug information -->
+            <div class="debug-info">
+                <h2 class="slds-text-heading_medium slds-m-bottom_small">Resource Information</h2>
+                <p>Static Resource URL: <code>{!URLFOR($Resource.ZooManagementWebApp)}</code></p>
+                <p>Index HTML URL: <code>{!URLFOR($Resource.ZooManagementWebApp, 'index.html')}</code></p>
+                <p>Config JS URL: <code>{!URLFOR($Resource.ZooManagementWebApp, 'config.js')}</code></p>
+                <p>API JS URL: <code>{!URLFOR($Resource.ZooManagementWebApp, 'api.js')}</code></p>
+                <p>App JS URL: <code>{!URLFOR($Resource.ZooManagementWebApp, 'app.js')}</code></p>
+                <p>Styles CSS URL: <code>{!URLFOR($Resource.ZooManagementWebApp, 'styles.css')}</code></p>
+                
+                <div class="slds-m-top_medium">
+                    <button onclick="checkResources(); return false;" class="slds-button slds-button_brand">Check Resources</button>
+                </div>
+                
+                <div id="resource-check-results" class="slds-m-top_medium">
+                    <!-- Results will be displayed here -->
+                </div>
+            </div>
+        </apex:outputPanel>
+        
+        <!-- Iframe fallback -->
+        <apex:outputPanel id="iframeContent" rendered="false">
+            <iframe src="{!URLFOR($Resource.ZooManagementWebApp, 'index.html')}" class="iframe-container" title="Zoo Management App"></iframe>
+        </apex:outputPanel>
+    </div>
+    
+    <script>
+        // Function to check if resources are loading correctly
+        function checkResources() {
+            const resultsDiv = document.getElementById('resource-check-results');
+            resultsDiv.innerHTML = '<p>Checking resources...</p>';
+            
+            const resources = [
+                '{!URLFOR($Resource.ZooManagementWebApp, "index.html")}',
+                '{!URLFOR($Resource.ZooManagementWebApp, "config.js")}',
+                '{!URLFOR($Resource.ZooManagementWebApp, "api.js")}',
+                '{!URLFOR($Resource.ZooManagementWebApp, "app.js")}',
+                '{!URLFOR($Resource.ZooManagementWebApp, "styles.css")}'
+            ];
+            
+            let results = '';
+            let checksCompleted = 0;
+            
+            resources.forEach(url => {
+                fetch(url)
+                    .then(response => {
+                        if (response.ok) {
+                            results += `<p class="success-message">✓ Resource found: ${url.split('/').pop()}</p>`;
+                        } else {
+                            results += `<p class="error-message">✗ Resource not found: ${url.split('/').pop()} (${response.status})</p>`;
+                        }
+                    })
+                    .catch(error => {
+                        results += `<p class="error-message">✗ Error checking resource: ${url.split('/').pop()} (${error.message})</p>`;
+                    })
+                    .finally(() => {
+                        checksCompleted++;
+                        if (checksCompleted === resources.length) {
+                            resultsDiv.innerHTML = results;
+                        }
+                    });
+            });
+        }
+        
+        // Load the app directly
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the CSS first
+            const styleLink = document.createElement('link');
+            styleLink.rel = 'stylesheet';
+            styleLink.href = '{!URLFOR($Resource.ZooManagementWebApp, "styles.css")}';
+            document.head.appendChild(styleLink);
+            
+            // Try to load the index.html content directly
+            fetch('{!URLFOR($Resource.ZooManagementWebApp, "index.html")}')
+                .then(response => response.text())
+                .then(html => {
+                    // Extract the body content
+                    const bodyContent = html.match(/<body[^>]*>(([\s\S]*?)<\/body>)/i);
+                    if (bodyContent && bodyContent[1]) {
+                        document.getElementById('zoo-app-container').innerHTML = bodyContent[1];
+                        
+                        // Now manually initialize the app
+                        // First load config.js
+                        const configScript = document.createElement('script');
+                        configScript.src = '{!URLFOR($Resource.ZooManagementWebApp, "config.js")}';
+                        configScript.onload = function() {
+                            // Then load api.js
+                            const apiScript = document.createElement('script');
+                            apiScript.src = '{!URLFOR($Resource.ZooManagementWebApp, "api.js")}';
+                            apiScript.onload = function() {
+                                // Finally load app.js
+                                const appScript = document.createElement('script');
+                                appScript.src = '{!URLFOR($Resource.ZooManagementWebApp, "app.js")}';
+                                appScript.onload = function() {
+                                    // Initialize the app manually
+                                    console.log('All scripts loaded, initializing app...');
+                                    
+                                    // Add click event listeners to all buttons
+                                    document.querySelectorAll('button').forEach(button => {
+                                        button.addEventListener('click', function(e) {
+                                            console.log('Button clicked:', this.textContent);
+                                            
+                                            // Handle navigation buttons
+                                            if (this.id === 'dashboard-btn' || this.classList.contains('mobile-nav-btn') && this.dataset.target === 'dashboard') {
+                                                showView('dashboard-view');
+                                            } else if (this.id === 'animals-btn' || this.classList.contains('mobile-nav-btn') && this.dataset.target === 'animals') {
+                                                showView('animals-view');
+                                            } else if (this.id === 'caregivers-btn' || this.classList.contains('mobile-nav-btn') && this.dataset.target === 'caregivers') {
+                                                showView('caregivers-view');
+                                            } else if (this.id === 'enclosures-btn' || this.classList.contains('mobile-nav-btn') && this.dataset.target === 'enclosures') {
+                                                showView('enclosures-view');
+                                            } else if (this.id === 'assignments-btn' || this.classList.contains('mobile-nav-btn') && this.dataset.target === 'assignments') {
+                                                showView('assignments-view');
+                                            }
+                                            
+                                            // Handle view buttons
+                                            else if (this.id === 'view-animals-btn') {
+                                                showView('animals-view');
+                                            } else if (this.id === 'view-caregivers-btn') {
+                                                showView('caregivers-view');
+                                            } else if (this.id === 'view-enclosures-btn') {
+                                                showView('enclosures-view');
+                                            } else if (this.id === 'view-assignments-btn') {
+                                                showView('assignments-view');
+                                            }
+                                            
+                                            // Handle add buttons
+                                            else if (this.id === 'add-animal-btn' || this.id === 'add-animal-view-btn') {
+                                                window.open('/lightning/o/Animal__c/new', '_blank');
+                                            } else if (this.id === 'add-caregiver-btn' || this.id === 'add-caregiver-view-btn') {
+                                                window.open('/lightning/o/Caregiver__c/new', '_blank');
+                                            } else if (this.id === 'add-enclosure-btn' || this.id === 'add-enclosure-view-btn') {
+                                                window.open('/lightning/o/Enclosure__c/new', '_blank');
+                                            } else if (this.id === 'add-assignment-btn' || this.id === 'add-assignment-view-btn') {
+                                                window.open('/lightning/o/Care_Assignment__c/new', '_blank');
+                                            }
+                                        });
+                                    });
+                                    
+                                    // Function to show a specific view
+                                    function showView(viewId) {
+                                        console.log('Showing view:', viewId);
+                                        
+                                        // Hide all views
+                                        document.querySelectorAll('.view').forEach(view => {
+                                            view.classList.remove('active-view');
+                                        });
+                                        
+                                        // Show the selected view
+                                        const selectedView = document.getElementById(viewId);
+                                        if (selectedView) {
+                                            selectedView.classList.add('active-view');
+                                            
+                                            // Update active navigation button
+                                            document.querySelectorAll('.nav-btn').forEach(btn => {
+                                                btn.classList.remove('active');
+                                            });
+                                            
+                                            // Set the corresponding nav button as active
+                                            if (viewId === 'dashboard-view') {
+                                                document.getElementById('dashboard-btn').classList.add('active');
+                                            } else if (viewId === 'animals-view') {
+                                                document.getElementById('animals-btn').classList.add('active');
+                                            } else if (viewId === 'caregivers-view') {
+                                                document.getElementById('caregivers-btn').classList.add('active');
+                                            } else if (viewId === 'enclosures-view') {
+                                                document.getElementById('enclosures-btn').classList.add('active');
+                                            } else if (viewId === 'assignments-view') {
+                                                document.getElementById('assignments-btn').classList.add('active');
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Initialize counts using Apex controller
+                                    ZooManagementAppController.getCount('Animal__c', function(result, event) {
+                                        if (event.status) {
+                                            document.getElementById('animal-count').textContent = result;
+                                        }
+                                    });
+                                    
+                                    ZooManagementAppController.getCount('Caregiver__c', function(result, event) {
+                                        if (event.status) {
+                                            document.getElementById('caregiver-count').textContent = result;
+                                        }
+                                    });
+                                    
+                                    ZooManagementAppController.getCount('Enclosure__c', function(result, event) {
+                                        if (event.status) {
+                                            document.getElementById('enclosure-count').textContent = result;
+                                        }
+                                    });
+                                    
+                                    ZooManagementAppController.getCount('Care_Assignment__c', function(result, event) {
+                                        if (event.status) {
+                                            document.getElementById('assignment-count').textContent = result;
+                                        }
+                                    });
+                                };
+                                document.body.appendChild(appScript);
+                            };
+                            document.body.appendChild(apiScript);
+                        };
+                        document.body.appendChild(configScript);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading app:', error);
+                    document.getElementById('zoo-app-container').innerHTML = 
+                        `<div class="slds-p-around_medium error-message">Error loading application: ${error.message}</div>`;
+                });
+        });
+    </script>
+</apex:page>

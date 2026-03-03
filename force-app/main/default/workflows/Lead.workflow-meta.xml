@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <rules>
+        <fullName>lead_rule</fullName>
+        <active>false</active>
+        <criteriaItems>
+            <field>Lead.AnnualRevenue</field>
+            <operation>equals</operation>
+            <value>1</value>
+        </criteriaItems>
+        <description>1122#1111</description>
+        <triggerType>onCreateOnly</triggerType>
+    </rules>
+    <tasks>
+        <fullName>asdf</fullName>
+        <assignedTo>arazkevich_dev20@prodly.co</assignedTo>
+        <assignedToType>user</assignedToType>
+        <dueDateOffset>1</dueDateOffset>
+        <notifyAssignee>false</notifyAssignee>
+        <priority>Normal</priority>
+        <protected>false</protected>
+        <status>Not Started</status>
+        <subject>asdf</subject>
+    </tasks>
+</Workflow>

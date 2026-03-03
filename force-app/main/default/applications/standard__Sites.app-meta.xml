@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultLandingTab>standard-home</defaultLandingTab>
+    <formFactors>Large</formFactors>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+    <isNavTabPersistenceDisabled>false</isNavTabPersistenceDisabled>
+    <tabs>standard-Chatter</tabs>
+    <tabs>standard-Sites</tabs>
+    <tabs>TransformAgromTest__c</tabs>
+    <tabs>sf_devops__Deployment_Result__c</tabs>
+    <tabs>TestForCC__c</tabs>
+    <tabs>SBQQ__Cost__c</tabs>
+    <tabs>AGromObject__c</tabs>
+    <tabs>JunkObjectTest__c</tabs>
+    <tabs>SBQQ__ProductOption__c</tabs>
+    <tabs>custom_object__c</tabs>
+    <tabs>Moover_Bug__c</tabs>
+    <tabs>SelfRefObject__c</tabs>
+    <tabs>PDRI__Managed_Environment__c</tabs>
+</CustomApplication>

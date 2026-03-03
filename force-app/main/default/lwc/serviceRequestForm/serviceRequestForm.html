@@ -1,0 +1,41 @@
+<template>
+    <lightning-card title="Request Volunteer Service" icon-name="custom:custom18">
+        <div class="slds-p-horizontal_small">
+            <lightning-record-edit-form object-api-name="Service_Request__c">
+                <div class="slds-grid slds-wrap">
+                    <div class="slds-col slds-size_1-of-1 slds-p-bottom_small">
+                        <lightning-input-field field-name="Skill_Needed__c" 
+                                              value={serviceRequest.Skill_Needed__c}
+                                              onchange={handleInputChange}
+                                              required>
+                        </lightning-input-field>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-p-bottom_small">
+                        <lightning-input-field field-name="Description__c" 
+                                              value={serviceRequest.Description__c}
+                                              onchange={handleInputChange}
+                                              required>
+                        </lightning-input-field>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
+                        <lightning-input-field field-name="Location__c" 
+                                              value={serviceRequest.Location__c}
+                                              onchange={handleInputChange}>
+                        </lightning-input-field>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-p-bottom_small">
+                        <lightning-input-field field-name="Requested_Date__c" 
+                                              value={serviceRequest.Requested_Date__c}
+                                              onchange={handleInputChange}
+                                              required>
+                        </lightning-input-field>
+                    </div>
+                </div>
+            </lightning-record-edit-form>
+        </div>
+        <div slot="footer">
+            <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-right_x-small"></lightning-button>
+            <lightning-button label="Submit Request" variant="brand" onclick={handleSubmit}></lightning-button>
+        </div>
+    </lightning-card>
+</template>
