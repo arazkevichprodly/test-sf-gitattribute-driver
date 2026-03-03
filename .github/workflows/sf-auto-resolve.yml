@@ -130,11 +130,11 @@ jobs:
                 FORCE_RESOLVED_FILES="$FORCE_RESOLVED_FILES\n  - $CONFLICTED_FILE"
               done
 
-              git commit -m "Auto-resolve: merge main into $BRANCH
-
-sf-git-merge-driver resolved false XML conflicts automatically.
-Remaining true conflicts force-resolved with promotion branch version (ours):
-$(echo -e "$FORCE_RESOLVED_FILES")"
+              COMMIT_MSG="Auto-resolve: merge main into $BRANCH"
+              COMMIT_MSG="$COMMIT_MSG\n\nsf-git-merge-driver resolved false XML conflicts automatically."
+              COMMIT_MSG="$COMMIT_MSG\nRemaining true conflicts force-resolved with promotion branch version (ours):"
+              COMMIT_MSG="$COMMIT_MSG$FORCE_RESOLVED_FILES"
+              git commit -m "$(echo -e "$COMMIT_MSG")"
 
               git push origin HEAD:"$BRANCH" && {
                 echo "PR #$PR resolved (with force-overwrite) and pushed."
