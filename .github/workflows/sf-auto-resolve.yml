@@ -124,17 +124,18 @@ jobs:
 
               FORCE_RESOLVED_FILES=""
               NON_XML_CONFLICTS=""
-              for CONFLICTED_FILE in $(git diff --name-only --diff-filter=U); do
+              while IFS= read -r CONFLICTED_FILE; do
+                [ -z "$CONFLICTED_FILE" ] && continue
                 if echo "$CONFLICTED_FILE" | grep -qE '\.(xml|labels-meta\.xml)$'; then
                   echo "  Force-resolving (XML): $CONFLICTED_FILE"
-                  git checkout --ours "$CONFLICTED_FILE"
-                  git add "$CONFLICTED_FILE"
+                  git checkout --ours -- "$CONFLICTED_FILE"
+                  git add -- "$CONFLICTED_FILE"
                   FORCE_RESOLVED_FILES="$FORCE_RESOLVED_FILES\n  - $CONFLICTED_FILE"
                 else
                   echo "  Non-XML conflict (manual): $CONFLICTED_FILE"
                   NON_XML_CONFLICTS="$NON_XML_CONFLICTS\n  - $CONFLICTED_FILE"
                 fi
-              done
+              done < <(git diff --name-only --diff-filter=U)
 
               if [ -n "$NON_XML_CONFLICTS" ]; then
                 echo "PR #$PR has non-XML conflicts that need manual resolution:"
