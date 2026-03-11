@@ -30,15 +30,6 @@
         <object>Caregiver__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
-    <objectPermissions>
-        <allowCreate>true</allowCreate>
-        <allowDelete>true</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>true</modifyAllRecords>
-        <object>Enclosure__c</object>
-        <viewAllRecords>true</viewAllRecords>
-    </objectPermissions>
     <pageAccesses>
         <apexPage>ZooManagementApp</apexPage>
         <enabled>true</enabled>
@@ -53,10 +44,6 @@
     </tabSettings>
     <tabSettings>
         <tab>Caregiver__c</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Enclosure__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
