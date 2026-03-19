@@ -1,0 +1,83 @@
+name: Prodly — Trigger Async Validation
+
+# Triggered when a PR is opened or updated against an environment branch.
+# This job is intentionally short-lived (~10s):
+#   1. Creates a Check Run in "in_progress" state → blocks PR merge
+#   2. Dispatches the async worker workflow (simulates calling Prodly backend)
+#   3. Exits — no runner cost during the actual validation
+#
+# The worker updates the Check Run when validation completes (pass/fail).
+# Branch protection should require "prodly/validation" to enforce the block.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, integration, qa, staging]
+
+permissions:
+  checks: write
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  trigger:
+    name: "Trigger async validation (exits immediately)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Check Run (in_progress) — blocks PR merge
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { data: checkRun } = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'prodly/validation',
+              head_sha: pr.head.sha,
+              status: 'in_progress',
+              started_at: new Date().toISOString(),
+              output: {
+                title: 'Salesforce Validation — Queued',
+                summary: [
+                  `**PR #${pr.number}**: \`${pr.head.ref}\` → \`${pr.base.ref}\``,
+                  '',
+                  '⏳ Dispatching async validation worker...',
+                  '',
+                  '_This CI step exits immediately. Validation runs asynchronously in the Prodly backend._',
+                  '_The PR merge button stays locked until validation completes._'
+                ].join('\n')
+              }
+            });
+            console.log(`✅ Check run created: id=${checkRun.id}, sha=${pr.head.sha}`);
+            core.setOutput('check_run_id', String(checkRun.id));
+
+      - name: Dispatch async validation worker
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const checkRunId = '${{ steps.check.outputs.check_run_id }}';
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'prodly-validate-worker.yml',
+              ref: 'main',
+              inputs: {
+                check_run_id:   checkRunId,
+                pr_number:      String(pr.number),
+                head_sha:       pr.head.sha,
+                source_branch:  pr.head.ref,
+                target_branch:  pr.base.ref
+              }
+            });
+
+            console.log(`🚀 Async worker dispatched for PR #${pr.number}`);
+            console.log(`   check_run_id  = ${checkRunId}`);
+            console.log(`   ${pr.head.ref} → ${pr.base.ref}`);
+            console.log('');
+            console.log('📤 CI trigger job exiting now.');
+            console.log('   Runner terminates. No cost during validation.');
+            console.log('   Prodly backend worker will update the check run when done.');
