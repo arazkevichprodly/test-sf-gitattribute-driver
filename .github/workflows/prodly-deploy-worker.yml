@@ -1,4 +1,4 @@
-name: Prodly — Async Deployment Worker
+name: Prodly — Async Deployment Worker !
 
 # Simulates the Prodly backend async deployment process.
 # In production, this runs inside appops-release-parent / metadata-service
