@@ -1,0 +1,237 @@
+name: Prodly — Async Validation Worker
+
+# Simulates the Prodly backend async validation process.
+# In production, this logic runs inside pipelines-service (not in CI).
+# The worker calls back to GitHub Checks API to unblock the PR.
+#
+# Simulated steps:
+#   1. Resolve pipeline context      (~10s)  — pipelines-service DB lookup
+#   2. Calculate delta via sfdx-git-delta (~5s)  — identify changed components
+#   3. Salesforce metadata validation  (~70s)  — deploy to validation org + Apex tests
+#   4. Update Check Run → success/failure
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_run_id:
+        description: 'GitHub Check Run ID to update when validation completes'
+        required: true
+        type: string
+      pr_number:
+        description: 'PR number'
+        required: true
+        type: string
+      head_sha:
+        description: 'Head commit SHA of the promotion branch'
+        required: true
+        type: string
+      source_branch:
+        description: 'Source (promotion) branch'
+        required: true
+        type: string
+      target_branch:
+        description: 'Target (environment) branch'
+        required: true
+        type: string
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  validate:
+    name: "Async Salesforce validation"
+    runs-on: ubuntu-latest
+    steps:
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 1 — Resolve pipeline context (simulates pipelines-service lookup)
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[Prodly Backend] Update check: resolving context"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ inputs.check_run_id }}'),
+              output: {
+                title: 'Salesforce Validation — Resolving context',
+                summary: [
+                  '🔍 **Resolving pipeline context...**',
+                  '',
+                  `PR **#${{ inputs.pr_number }}**: \`${{ inputs.source_branch }}\` → \`${{ inputs.target_branch }}\``,
+                  '',
+                  '_pipelines-service: identifying pipeline, stage, target org, validation strategy_'
+                ].join('\n')
+              }
+            });
+
+      - name: "[Prodly Backend] Simulate context resolution (~10s)"
+        run: |
+          echo "══════════════════════════════════════════════════════"
+          echo "  [Prodly Backend] Resolving pipeline context"
+          echo "══════════════════════════════════════════════════════"
+          echo "  source_branch : ${{ inputs.source_branch }}"
+          echo "  target_branch : ${{ inputs.target_branch }}"
+          echo "  pr_number     : ${{ inputs.pr_number }}"
+          echo "  head_sha      : ${{ inputs.head_sha }}"
+          echo ""
+          echo "  Looking up pipeline by environment branch..."
+          sleep 5
+          echo "  Resolved:"
+          echo "    pipeline_id        : pipeline-sdd-v1"
+          echo "    stage              : ${{ inputs.target_branch }}"
+          echo "    target_org         : sandbox-${{ inputs.target_branch }}"
+          echo "    promotion_type     : pre-bundling (bundle → env branch)"
+          echo "    validation_strategy: sfdx-git-delta delta"
+          sleep 5
+          echo ""
+          echo "  ✓ Context resolved"
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 2 — Calculate changed components (sfdx-git-delta)
+      # ─────────────────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+
+      - name: "[Prodly Backend] Calculate delta via sfdx-git-delta (~5s)"
+        run: |
+          echo "══════════════════════════════════════════════════════"
+          echo "  [sfdx-git-delta] Calculating bundle delta"
+          echo "══════════════════════════════════════════════════════"
+          BASE_SHA=$(git merge-base HEAD origin/${{ inputs.target_branch }} 2>/dev/null || echo "simulated-base-sha")
+          echo "  base_sha (where bundle branched from target) : ${BASE_SHA}"
+          echo "  head_sha (current bundle tip)               : ${{ inputs.head_sha }}"
+          echo ""
+          echo "  Running: sgd --from ${BASE_SHA} --to ${{ inputs.head_sha }} --output package.xml"
+          sleep 5
+          echo ""
+          echo "  Changed components (simulated delta):"
+          echo "    + CustomObject  : Account"
+          echo "        CustomField : Account.AnnualRevenue__c  (new)"
+          echo "        CustomField : Account.EmployeeCount__c  (modified)"
+          echo "    + ApexClass     : AccountService            (modified)"
+          echo "    + ApexClass     : AccountServiceTest        (modified)"
+          echo ""
+          echo "  Delta summary: 3 components, 2 metadata types"
+          echo "  ✓ Delta calculated"
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 3 — Trigger Salesforce validation (long-running)
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[Prodly Backend] Update check: validation running"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ inputs.check_run_id }}'),
+              output: {
+                title: 'Salesforce Validation — Running',
+                summary: [
+                  '⚙️ **Salesforce validation in progress...**',
+                  '',
+                  `**Target org**: \`sandbox-${{ inputs.target_branch }}\``,
+                  '**Components**: 3 changed',
+                  '**Apex Tests**: Running...',
+                  '',
+                  '_Deploying metadata to validation org. Typically takes 1–5 minutes._',
+                  '_PR merge remains locked until this completes._'
+                ].join('\n')
+              }
+            });
+
+      - name: "[Salesforce] Simulate metadata validation + Apex tests (~70s)"
+        run: |
+          echo "══════════════════════════════════════════════════════"
+          echo "  [Salesforce] Metadata deployment validation"
+          echo "══════════════════════════════════════════════════════"
+          echo "  Org       : sandbox-${{ inputs.target_branch }}"
+          echo "  Job ID    : 0Af3H00000BxYzABCD (simulated)"
+          echo "  Components: 3"
+          echo ""
+
+          declare -a STEPS=("Queued" "Processing metadata types" "Deploying Account" "Deploying AccountService" "Deploying AccountServiceTest" "Running Apex tests" "Collecting coverage data")
+          declare -a PCTS=(5 15 30 50 65 80 95)
+
+          for i in "${!STEPS[@]}"; do
+            echo "  [${PCTS[$i]}%] ${STEPS[$i]}..."
+            sleep 10
+          done
+
+          echo ""
+          echo "  Validation complete!"
+          echo "    Components deployed : 3/3"
+          echo "    Apex tests          : 14 passed, 0 failed"
+          echo "    Code coverage       : 89% (threshold: 75% ✓)"
+          echo "    Quick Deploy ID     : 0Af3H00000BxYzABCD"
+          echo ""
+          echo "  ✓ Validation passed"
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 4 — Update Check Run with final result
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[Prodly Backend] Mark Check Run SUCCESS — PR unblocked"
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ inputs.check_run_id }}'),
+              status: 'completed',
+              conclusion: 'success',
+              completed_at: new Date().toISOString(),
+              output: {
+                title: 'Salesforce Validation — Passed ✅',
+                summary: [
+                  '## ✅ Validation passed',
+                  '',
+                  `**Target org**: \`sandbox-${{ inputs.target_branch }}\``,
+                  '**Components**: 3/3 deployed successfully',
+                  '**Apex Tests**: 14 passed, 0 failed',
+                  '**Code Coverage**: 89%',
+                  '**Quick Deploy ID**: `0Af3H00000BxYzABCD`',
+                  '',
+                  `PR **#${{ inputs.pr_number }}** is now ready to review and merge.`,
+                  '',
+                  '_After merge, deployment will start automatically using the quick deploy result._'
+                ].join('\n')
+              }
+            });
+            console.log('✅ Check run → success. PR is now unblocked for merge.');
+
+      - name: "[Prodly Backend] Mark Check Run FAILURE — PR stays blocked"
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ inputs.check_run_id }}'),
+              status: 'completed',
+              conclusion: 'failure',
+              completed_at: new Date().toISOString(),
+              output: {
+                title: 'Salesforce Validation — Failed ❌',
+                summary: [
+                  '## ❌ Validation failed',
+                  '',
+                  `**Target org**: \`sandbox-${{ inputs.target_branch }}\``,
+                  '',
+                  'Check the workflow logs above for details.',
+                  '',
+                  `PR **#${{ inputs.pr_number }}** is blocked until validation passes.`,
+                  '',
+                  '_Fix the issue on the promotion branch and push to re-trigger validation._'
+                ].join('\n')
+              }
+            });
+            console.log('❌ Check run → failure. PR remains blocked.');
