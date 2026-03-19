@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Test feature object for SDD pipeline POC</description>
+    <label>Test Feature</label>
+    <nameField>
+        <label>Test Feature Name</label>
+        <type>Text</type>
+    </nameField>
+    <pluralLabel>Test Features</pluralLabel>
+    <searchable>true</searchable>
+    <sharingModel>ReadWrite</sharingModel>
+</CustomObject>
