@@ -1,13 +1,8 @@
 name: Prodly — Trigger Async Validation
 
-# Triggered when a PR is opened or updated against an environment branch.
-# This job is intentionally short-lived (~10s):
-#   1. Creates a Check Run in "in_progress" state → blocks PR merge
-#   2. Dispatches the async worker workflow (simulates calling Prodly backend)
-#   3. Exits — no runner cost during the actual validation
-#
-# The worker updates the Check Run when validation completes (pass/fail).
-# Branch protection should require "prodly/validation" to enforce the block.
+# Creates a Check Run (in_progress) to block the PR merge.
+# Prints the curl / gh commands to update it — YOU run those manually
+# to simulate pipelines-service calling the GitHub Checks API.
 
 on:
   pull_request:
@@ -16,16 +11,14 @@ on:
 
 permissions:
   checks: write
-  actions: write
-  contents: read
   pull-requests: read
 
 jobs:
   trigger:
-    name: "Trigger async validation (exits immediately)"
+    name: "Create check run and print update commands"
     runs-on: ubuntu-latest
     steps:
-      - name: Create Check Run (in_progress) — blocks PR merge
+      - name: Create Check Run (in_progress) — PR merge is now blocked
         id: check
         uses: actions/github-script@v7
         with:
@@ -39,45 +32,63 @@ jobs:
               status: 'in_progress',
               started_at: new Date().toISOString(),
               output: {
-                title: 'Salesforce Validation — Queued',
+                title: 'Salesforce Validation — Waiting for Prodly backend',
                 summary: [
                   `**PR #${pr.number}**: \`${pr.head.ref}\` → \`${pr.base.ref}\``,
                   '',
-                  '⏳ Dispatching async validation worker...',
+                  '⏳ Waiting for external validation result...',
                   '',
-                  '_This CI step exits immediately. Validation runs asynchronously in the Prodly backend._',
-                  '_The PR merge button stays locked until validation completes._'
+                  '_pipelines-service will call the GitHub Checks API when validation completes._',
+                  '_See the workflow log for the exact curl / gh commands to simulate this._'
                 ].join('\n')
               }
             });
-            console.log(`✅ Check run created: id=${checkRun.id}, sha=${pr.head.sha}`);
             core.setOutput('check_run_id', String(checkRun.id));
+            core.setOutput('repo', `${context.repo.owner}/${context.repo.repo}`);
+            core.setOutput('head_sha', pr.head.sha);
 
-      - name: Dispatch async validation worker
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const checkRunId = '${{ steps.check.outputs.check_run_id }}';
-
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'prodly-validate-worker.yml',
-              ref: 'main',
-              inputs: {
-                check_run_id:   checkRunId,
-                pr_number:      String(pr.number),
-                head_sha:       pr.head.sha,
-                source_branch:  pr.head.ref,
-                target_branch:  pr.base.ref
-              }
-            });
-
-            console.log(`🚀 Async worker dispatched for PR #${pr.number}`);
-            console.log(`   check_run_id  = ${checkRunId}`);
-            console.log(`   ${pr.head.ref} → ${pr.base.ref}`);
-            console.log('');
-            console.log('📤 CI trigger job exiting now.');
-            console.log('   Runner terminates. No cost during validation.');
-            console.log('   Prodly backend worker will update the check run when done.');
+      - name: Print commands to update the check run (you run these)
+        env:
+          CHECK_RUN_ID: ${{ steps.check.outputs.check_run_id }}
+          REPO: ${{ steps.check.outputs.repo }}
+        run: |
+          echo ""
+          echo "══════════════════════════════════════════════════════════════════════"
+          echo "  CHECK RUN CREATED — PR merge is now blocked"
+          echo "  check_run_id : ${CHECK_RUN_ID}"
+          echo "  repo         : ${REPO}"
+          echo "══════════════════════════════════════════════════════════════════════"
+          echo ""
+          echo "  Now YOU are pipelines-service. Run one of these to simulate"
+          echo "  the backend calling the GitHub Checks API:"
+          echo ""
+          echo "  ─── OPTION 1: gh CLI (recommended) ─────────────────────────"
+          echo ""
+          echo "  # Mark SUCCESS (unblocks PR merge):"
+          echo "  gh api --method PATCH /repos/${REPO}/check-runs/${CHECK_RUN_ID} \\"
+          echo "    --field status=completed \\"
+          echo "    --field conclusion=success \\"
+          echo "    --field completed_at=\"\$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \\"
+          echo "    --field 'output[title]=Salesforce Validation — Passed ✅' \\"
+          echo "    --field 'output[summary]=Validation passed. PR is unblocked.'"
+          echo ""
+          echo "  # Mark FAILURE (keeps PR blocked):"
+          echo "  gh api --method PATCH /repos/${REPO}/check-runs/${CHECK_RUN_ID} \\"
+          echo "    --field status=completed \\"
+          echo "    --field conclusion=failure \\"
+          echo "    --field completed_at=\"\$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \\"
+          echo "    --field 'output[title]=Salesforce Validation — Failed ❌' \\"
+          echo "    --field 'output[summary]=Validation failed. Fix and push to re-trigger.'"
+          echo ""
+          echo "  ─── OPTION 2: curl ─────────────────────────────────────────"
+          echo ""
+          echo "  # Mark SUCCESS:"
+          echo "  curl -s -X PATCH \\"
+          echo "    -H \"Authorization: Bearer \$GH_TOKEN\" \\"
+          echo "    -H \"Accept: application/vnd.github+json\" \\"
+          echo "    https://api.github.com/repos/${REPO}/check-runs/${CHECK_RUN_ID} \\"
+          echo "    -d '{\"status\":\"completed\",\"conclusion\":\"success\",\"completed_at\":\"'\$(date -u +%Y-%m-%dT%H:%M:%SZ)'\",\"output\":{\"title\":\"Salesforce Validation — Passed ✅\",\"summary\":\"Validation passed. PR is unblocked.\"}}'"
+          echo ""
+          echo "══════════════════════════════════════════════════════════════════════"
+          echo "  CI job done. Waiting for you (pipelines-service) to call back."
+          echo "══════════════════════════════════════════════════════════════════════"
