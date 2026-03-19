@@ -1,8 +1,12 @@
 name: Prodly — Trigger Async Validation
 
-# Creates a Check Run (in_progress) to block the PR merge.
-# Prints the curl / gh commands to update it — YOU run those manually
-# to simulate pipelines-service calling the GitHub Checks API.
+# Posts a commit status (pending) to block PR merge.
+# Uses the Statuses API (not Checks API) so a plain PAT can update it.
+# Prints the curl command to set it to success/failure.
+#
+# In production: pipelines-service posts to
+#   POST /repos/{owner}/{repo}/statuses/{sha}
+# using a GitHub App installation token or a PAT with repo scope.
 
 on:
   pull_request:
@@ -10,85 +14,71 @@ on:
     branches: [main, integration, qa, staging]
 
 permissions:
-  checks: write
+  statuses: write
   pull-requests: read
 
 jobs:
   trigger:
-    name: "Create check run and print update commands"
+    name: "Post pending status + print update commands"
     runs-on: ubuntu-latest
     steps:
-      - name: Create Check Run (in_progress) — PR merge is now blocked
-        id: check
+      - name: Post commit status (pending) — PR merge is now blocked
+        id: status
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
-            const { data: checkRun } = await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'prodly/validation',
-              head_sha: pr.head.sha,
-              status: 'in_progress',
-              started_at: new Date().toISOString(),
-              output: {
-                title: 'Salesforce Validation — Waiting for Prodly backend',
-                summary: [
-                  `**PR #${pr.number}**: \`${pr.head.ref}\` → \`${pr.base.ref}\``,
-                  '',
-                  '⏳ Waiting for external validation result...',
-                  '',
-                  '_pipelines-service will call the GitHub Checks API when validation completes._',
-                  '_See the workflow log for the exact curl / gh commands to simulate this._'
-                ].join('\n')
-              }
-            });
-            core.setOutput('check_run_id', String(checkRun.id));
-            core.setOutput('repo', `${context.repo.owner}/${context.repo.repo}`);
-            core.setOutput('head_sha', pr.head.sha);
+            const sha = pr.head.sha;
+            const repo = context.repo;
 
-      - name: Print commands to update the check run (you run these)
+            await github.rest.repos.createCommitStatus({
+              owner: repo.owner,
+              repo: repo.repo,
+              sha: sha,
+              state: 'pending',
+              context: 'prodly/validation',
+              description: 'Salesforce validation in progress...',
+              target_url: 'https://github.com/' + repo.owner + '/' + repo.repo + '/actions'
+            });
+
+            console.log(`⏳ Status posted: pending`);
+            console.log(`   sha  : ${sha}`);
+            console.log(`   context: prodly/validation`);
+
+            core.setOutput('sha', sha);
+            core.setOutput('repo', `${repo.owner}/${repo.repo}`);
+
+      - name: Print commands to update the status (you run these)
         env:
-          CHECK_RUN_ID: ${{ steps.check.outputs.check_run_id }}
-          REPO: ${{ steps.check.outputs.repo }}
+          SHA: ${{ steps.status.outputs.sha }}
+          REPO: ${{ steps.status.outputs.repo }}
         run: |
           echo ""
           echo "══════════════════════════════════════════════════════════════════════"
-          echo "  CHECK RUN CREATED — PR merge is now blocked"
-          echo "  check_run_id : ${CHECK_RUN_ID}"
-          echo "  repo         : ${REPO}"
+          echo "  STATUS POSTED: pending — PR merge is blocked"
+          echo "  sha     : ${SHA}"
+          echo "  context : prodly/validation"
+          echo "  repo    : ${REPO}"
           echo "══════════════════════════════════════════════════════════════════════"
           echo ""
-          echo "  Now YOU are pipelines-service. Run one of these to simulate"
-          echo "  the backend calling the GitHub Checks API:"
+          echo "  YOU are pipelines-service. Run one of these when validation completes:"
           echo ""
-          echo "  ─── OPTION 1: gh CLI (recommended) ─────────────────────────"
+          echo "  ─── Mark SUCCESS (unblocks PR merge) ────────────────────────"
           echo ""
-          echo "  # Mark SUCCESS (unblocks PR merge):"
-          echo "  gh api --method PATCH /repos/${REPO}/check-runs/${CHECK_RUN_ID} \\"
-          echo "    --field status=completed \\"
-          echo "    --field conclusion=success \\"
-          echo "    --field completed_at=\"\$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \\"
-          echo "    --field 'output[title]=Salesforce Validation — Passed ✅' \\"
-          echo "    --field 'output[summary]=Validation passed. PR is unblocked.'"
-          echo ""
-          echo "  # Mark FAILURE (keeps PR blocked):"
-          echo "  gh api --method PATCH /repos/${REPO}/check-runs/${CHECK_RUN_ID} \\"
-          echo "    --field status=completed \\"
-          echo "    --field conclusion=failure \\"
-          echo "    --field completed_at=\"\$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \\"
-          echo "    --field 'output[title]=Salesforce Validation — Failed ❌' \\"
-          echo "    --field 'output[summary]=Validation failed. Fix and push to re-trigger.'"
-          echo ""
-          echo "  ─── OPTION 2: curl ─────────────────────────────────────────"
-          echo ""
-          echo "  # Mark SUCCESS:"
-          echo "  curl -s -X PATCH \\"
+          echo "  curl -s -X POST \\"
           echo "    -H \"Authorization: Bearer \$GH_TOKEN\" \\"
           echo "    -H \"Accept: application/vnd.github+json\" \\"
-          echo "    https://api.github.com/repos/${REPO}/check-runs/${CHECK_RUN_ID} \\"
-          echo "    -d '{\"status\":\"completed\",\"conclusion\":\"success\",\"completed_at\":\"'\$(date -u +%Y-%m-%dT%H:%M:%SZ)'\",\"output\":{\"title\":\"Salesforce Validation — Passed ✅\",\"summary\":\"Validation passed. PR is unblocked.\"}}'"
+          echo "    https://api.github.com/repos/${REPO}/statuses/${SHA} \\"
+          echo "    -d '{\"state\":\"success\",\"context\":\"prodly/validation\",\"description\":\"Validation passed. PR is unblocked.\"}'"
+          echo ""
+          echo "  ─── Mark FAILURE (keeps PR blocked) ────────────────────────"
+          echo ""
+          echo "  curl -s -X POST \\"
+          echo "    -H \"Authorization: Bearer \$GH_TOKEN\" \\"
+          echo "    -H \"Accept: application/vnd.github+json\" \\"
+          echo "    https://api.github.com/repos/${REPO}/statuses/${SHA} \\"
+          echo "    -d '{\"state\":\"failure\",\"context\":\"prodly/validation\",\"description\":\"Validation failed. Fix and push to re-trigger.\"}'"
           echo ""
           echo "══════════════════════════════════════════════════════════════════════"
-          echo "  CI job done. Waiting for you (pipelines-service) to call back."
+          echo "  CI job done. Waiting for pipelines-service to call back."
           echo "══════════════════════════════════════════════════════════════════════"
