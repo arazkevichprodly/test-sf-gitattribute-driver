@@ -1,0 +1,53 @@
+name: Prodly — Checks API Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [integration]
+
+permissions:
+  checks: write
+  pull-requests: read
+
+jobs:
+  create-check-run:
+    name: "Create Check Run via Checks API"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Check Run (in_progress)
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { data: checkRun } = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'prodly/validation-checks-api',
+              head_sha: pr.head.sha,
+              status: 'in_progress',
+              started_at: new Date().toISOString(),
+              output: {
+                title: 'Salesforce Validation — Running',
+                summary: 'Validation in progress against target org...',
+                text: [
+                  '## Details',
+                  '- **Target org**: sandbox-integration',
+                  '- **Components**: 3 changed',
+                  '- **Apex Tests**: running...',
+                ].join('\n')
+              }
+            });
+            console.log(`Check Run created: id=${checkRun.id}`);
+            core.setOutput('check_run_id', String(checkRun.id));
+
+      - name: Print curl to update check run
+        env:
+          CHECK_RUN_ID: ${{ steps.check.outputs.check_run_id }}
+        run: |
+          echo ""
+          echo "══════════════════════════════════════════════════"
+          echo "  CHECK RUN ID: ${CHECK_RUN_ID}"
+          echo "  This uses GITHUB_TOKEN (GitHub Actions App token)"
+          echo "  A PAT cannot update this — needs GitHub App token"
+          echo "══════════════════════════════════════════════════"
