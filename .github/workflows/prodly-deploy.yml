@@ -1,0 +1,79 @@
+name: Prodly — Trigger Async Deployment
+
+# Triggered when a promotion PR is merged into an environment branch.
+# This job is intentionally short-lived (~10s):
+#   1. Creates a Deployment Check Run in "in_progress" state
+#   2. Dispatches the async deploy worker (simulates calling Prodly backend)
+#   3. Exits — no runner cost during the actual Salesforce deployment
+#
+# In production: GitHub webhook fires → pipelines-service picks it up
+# and orchestrates appops-release-parent → metadata-service asynchronously.
+
+on:
+  push:
+    branches: [main, integration, qa, staging]
+
+permissions:
+  checks: write
+  actions: write
+  contents: read
+
+jobs:
+  trigger:
+    name: "Trigger async deployment (exits immediately)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Deployment Check Run (in_progress)
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: checkRun } = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'prodly/deployment',
+              head_sha: context.sha,
+              status: 'in_progress',
+              started_at: new Date().toISOString(),
+              output: {
+                title: 'Salesforce Deployment — Queued',
+                summary: [
+                  `**Branch**: \`${{ github.ref_name }}\``,
+                  `**Commit**: \`${context.sha.substring(0, 8)}\``,
+                  '',
+                  '⏳ Dispatching async deployment worker...',
+                  '',
+                  '_This CI step exits immediately._',
+                  '_Deployment runs asynchronously in the Prodly backend._',
+                  '_Promotion status will update when complete._'
+                ].join('\n')
+              }
+            });
+            console.log(`✅ Deployment check run created: id=${checkRun.id}`);
+            core.setOutput('check_run_id', String(checkRun.id));
+
+      - name: Dispatch async deployment worker
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checkRunId = '${{ steps.check.outputs.check_run_id }}';
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'prodly-deploy-worker.yml',
+              ref: 'main',
+              inputs: {
+                check_run_id:  checkRunId,
+                target_branch: '${{ github.ref_name }}',
+                commit_sha:    context.sha
+              }
+            });
+
+            console.log(`🚀 Async deploy worker dispatched`);
+            console.log(`   check_run_id  = ${checkRunId}`);
+            console.log(`   target_branch = ${{ github.ref_name }}`);
+            console.log(`   commit_sha    = ${context.sha}`);
+            console.log('');
+            console.log('📤 CI trigger job exiting now.');
+            console.log('   Deployment runs in Prodly backend. No runner cost during deploy.');

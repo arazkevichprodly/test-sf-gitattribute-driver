@@ -1,0 +1,189 @@
+name: Prodly — Async Deployment Worker!
+
+# Simulates the Prodly backend async deployment process.
+# In production, this runs inside appops-release-parent / metadata-service
+# orchestrated via SNS → SQS, not in CI.
+#
+# Simulated steps:
+#   1. Resolve deployment context       (~5s)  — look up quick-deploy ID from validation
+#   2. Attempt quick deploy             (~20s) — reuse saved validation result
+#   3. (Fallback) full deployment       (~40s) — if quick deploy unavailable
+#   4. Update promotion state → DEPLOYED
+#   5. Update Check Run → success/failure
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_run_id:
+        description: 'GitHub Check Run ID to update when deployment completes'
+        required: true
+        type: string
+      target_branch:
+        description: 'Target environment branch that was updated (merge target)'
+        required: true
+        type: string
+      commit_sha:
+        description: 'Merge commit SHA on the target branch'
+        required: true
+        type: string
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  deploy:
+    name: "Async Salesforce deployment"
+    runs-on: ubuntu-latest
+    steps:
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 1 — Resolve deployment context
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[Prodly Backend] Resolve deployment context (~5s)"
+        run: |
+          echo "══════════════════════════════════════════════════════"
+          echo "  [Prodly Backend] Resolving deployment context"
+          echo "══════════════════════════════════════════════════════"
+          echo "  Event         : push to ${{ inputs.target_branch }} (promotion merged)"
+          echo "  Commit        : ${{ inputs.commit_sha }}"
+          echo ""
+          echo "  Looking up promotion record by merge commit..."
+          sleep 3
+          echo "  Found promotion: promo-0001"
+          echo "    source_branch    : prodly-pipeline/PM-10010-to-${{ inputs.target_branch }}"
+          echo "    target_org       : sandbox-${{ inputs.target_branch }}"
+          echo "    quick_deploy_id  : 0Af3H00000BxYzABCD (from validation step)"
+          echo "    validation_age   : 8 minutes (within 10-min quick deploy window)"
+          sleep 2
+          echo ""
+          echo "  ✓ Context resolved — will attempt quick deploy"
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 2 — Attempt quick deploy (reuse validation result)
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[Prodly Backend] Update check: attempting quick deploy"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ inputs.check_run_id }}'),
+              output: {
+                title: 'Salesforce Deployment — Quick Deploy',
+                summary: [
+                  '⚡ **Attempting quick deploy...**',
+                  '',
+                  `**Target org**: \`sandbox-${{ inputs.target_branch }}\``,
+                  '**Quick Deploy ID**: `0Af3H00000BxYzABCD`',
+                  '',
+                  '_Reusing saved validation result. Much faster than full deploy._'
+                ].join('\n')
+              }
+            });
+
+      - name: "[Salesforce] Simulate quick deploy (~20s)"
+        id: quick-deploy
+        run: |
+          echo "══════════════════════════════════════════════════════"
+          echo "  [Salesforce] Quick deploy"
+          echo "══════════════════════════════════════════════════════"
+          echo "  Quick Deploy ID : 0Af3H00000BxYzABCD"
+          echo "  Target org      : sandbox-${{ inputs.target_branch }}"
+          echo ""
+          echo "  [ 0%] Initiating quick deploy..."
+          sleep 5
+          echo "  [25%] Applying validated components..."
+          sleep 5
+          echo "  [60%] Deploying Account, AccountService, AccountServiceTest..."
+          sleep 5
+          echo "  [90%] Running post-deploy steps..."
+          sleep 5
+          echo "  [100%] Complete!"
+          echo ""
+          echo "  ✓ Quick deploy succeeded"
+          echo "DEPLOY_METHOD=quick_deploy" >> $GITHUB_ENV
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 3 — Update promotion state in Prodly backend
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[Prodly Backend] Update promotion state → DEPLOYED"
+        if: success()
+        run: |
+          echo "══════════════════════════════════════════════════════"
+          echo "  [Prodly Backend] Updating promotion state"
+          echo "══════════════════════════════════════════════════════"
+          echo "  BundleStageState.residencyState  : DEPLOYING → DEPLOYED"
+          echo "  BundleStageState.deploymentState : SUCCEEDED"
+          echo "  BundleStageState.deployedAt      : $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "  StageState.lastDeployedSha        : ${{ inputs.commit_sha }}"
+          echo "  StageState.syncState             : IN_SYNC"
+          echo ""
+          echo "  SNS event dispatched → pipelines-service consumer"
+          echo "  ✓ Promotion state updated"
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Step 4 — Update Check Run with final result
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[Prodly Backend] Mark Check Run SUCCESS"
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ inputs.check_run_id }}'),
+              status: 'completed',
+              conclusion: 'success',
+              completed_at: new Date().toISOString(),
+              output: {
+                title: 'Salesforce Deployment — Succeeded ✅',
+                summary: [
+                  '## ✅ Deployment succeeded',
+                  '',
+                  `**Target org**: \`sandbox-${{ inputs.target_branch }}\``,
+                  `**Commit**: \`${{ inputs.commit_sha }}.substring(0, 8)\``,
+                  '**Method**: Quick deploy (reused validation result)',
+                  '**Duration**: ~20s',
+                  '',
+                  '**Promotion status**: `DEPLOYED`',
+                  '**Stage sync state**: `IN_SYNC`',
+                  '',
+                  '_The bundle is now live in this environment._'
+                ].join('\n')
+              }
+            });
+            console.log('✅ Deployment check run → success. Promotion state: DEPLOYED.');
+
+      - name: "[Prodly Backend] Mark Check Run FAILURE"
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: Number('${{ inputs.check_run_id }}'),
+              status: 'completed',
+              conclusion: 'failure',
+              completed_at: new Date().toISOString(),
+              output: {
+                title: 'Salesforce Deployment — Failed ❌',
+                summary: [
+                  '## ❌ Deployment failed',
+                  '',
+                  `**Target org**: \`sandbox-${{ inputs.target_branch }}\``,
+                  `**Commit**: \`${{ inputs.commit_sha }}\``,
+                  '',
+                  '**Promotion status**: `DEPLOYMENT_FAILED`',
+                  '',
+                  'Recovery options:',
+                  '1. Re-trigger deployment from the Prodly Pipeline Viewer',
+                  '2. Fix-forward: commit fix to bundle branch and re-promote',
+                  '3. Rollback: revert the promotion PR'
+                ].join('\n')
+              }
+            });
+            console.log('❌ Deployment check run → failure.');
